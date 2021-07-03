@@ -155,5 +155,27 @@ Java_com_mobileer_androidfxlab_NativeInterface_enablePassthroughNative(
         args.mute(!enable);
     }, enginePtr->functionList);
 }
+
+// ### RECORDING
+JNIEXPORT void JNICALL
+Java_com_mobileer_androidfxlab_NativeInterface_startAudioRecorder(
+        JNIEnv *, jobject MainActivity) {
+    enginePtr->startAudioRecorder();
+}
+JNIEXPORT void JNICALL
+Java_com_mobileer_androidfxlab_NativeInterface_stopAudioRecorder(
+        JNIEnv *, jobject MainActivity) {
+    enginePtr->stopAudioRecorder();
+}
+JNIEXPORT void JNICALL
+Java_com_mobileer_androidfxlab_NativeInterface_writeFile(JNIEnv *env, jobject thiz, jstring filePath) {
+    if (!enginePtr) return;
+    const char *path;
+    path = env->GetStringUTFChars(filePath, nullptr);
+    enginePtr->writeFile(path);
+    env->ReleaseStringUTFChars(filePath, path);
+}
+
+
 } //extern C
 

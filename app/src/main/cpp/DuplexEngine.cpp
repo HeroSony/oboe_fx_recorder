@@ -32,7 +32,9 @@ void DuplexEngine::beginStreams() {
     } else {
         stopStreams();
     }
-    SAMPLE_RATE = inStream->getSampleRate();
+    mSampleRate = inStream->getSampleRate();
+    mFormat = inStream->getFormat();
+
     openOutStream();
 
     oboe::Result result = startStreams();
@@ -42,6 +44,7 @@ void DuplexEngine::beginStreams() {
 template<class numeric>
 void DuplexEngine::createCallback() {
     mCallback = std::make_unique<DuplexCallback<numeric>>(
+            &mSoundRecording,
             *inStream, [&functionStack = this->functionList](numeric *beg, numeric *end) {
                 std::get<FunctionList<numeric *>>(functionStack)(beg, end);
             },
@@ -58,7 +61,7 @@ oboe::AudioStreamBuilder DuplexEngine::defaultBuilder() {
 
 void DuplexEngine::openInStream() {
     defaultBuilder().setDirection(oboe::Direction::Input)
-            ->setFormat(oboe::AudioFormat::Float) // For now
+            ->setFormat(mFormat) // For now
             ->setChannelCount(1) // Mono in for effects processing
             ->openManagedStream(inStream);
 }
@@ -91,3 +94,13 @@ oboe::Result DuplexEngine::stopStreams() {
     return inputResult;
 }
 
+// ### RECORDING
+void DuplexEngine::startAudioRecorder() {
+    mSoundRecording.setRecording(true);
+}
+void DuplexEngine::stopAudioRecorder() {
+    mSoundRecording.setRecording(false);
+}
+void DuplexEngine::writeFile(const char* filePath) {
+    mSoundRecording.initiateWritingToFile(filePath, mOutputChannelCount, mSampleRate);
+}

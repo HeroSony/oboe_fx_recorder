@@ -82,6 +82,10 @@ object NativeInterface {
         enablePassthroughNative(enable)
     }
 
+    external fun startAudioRecorder()
+    external fun stopAudioRecorder()
+    external fun writeFile(pathFile: String)
+
     // State of audio engine
     external fun createAudioEngine()
 

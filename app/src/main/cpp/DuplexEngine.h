@@ -24,6 +24,7 @@
 #include <oboe/Oboe.h>
 #include "FunctionList.h"
 #include "DuplexCallback.h"
+#include "SoundRecording.h"
 
 
 class DuplexEngine {
@@ -42,7 +43,16 @@ public:
     std::variant<FunctionList<int16_t *>, FunctionList<float *>> functionList{
             std::in_place_type<FunctionList<int16_t *>>};
 
+
+    // ### RECORDING
+    void startAudioRecorder();
+    void stopAudioRecorder();
+    void writeFile(const char* filePath);
+
 private:
+    int32_t mOutputChannelCount = oboe::ChannelCount::Stereo;
+    int32_t mSampleRate = oboe::kUnspecified;
+    oboe::AudioFormat mFormat = oboe::AudioFormat::Float;
 
     void openInStream();
 
@@ -58,6 +68,7 @@ private:
     oboe::ManagedStream outStream;
 
 
+    SoundRecording  mSoundRecording;
 };
 
 

@@ -17,6 +17,7 @@
 #define ANDROID_FXLAB_DUPLEXCALLBACK_H
 
 #include <oboe/Oboe.h>
+#include "SoundRecording.h"
 
 
 
@@ -28,16 +29,24 @@ template<class numeric_type>
 class DuplexCallback : public oboe::AudioStreamCallback {
 public:
 
-    DuplexCallback(oboe::AudioStream &inStream,
-                   std::function<void(numeric_type *, numeric_type *)> fun,
-                   size_t buffer_size, std::function<void(void)> restartFunction) :
-            kBufferSize(buffer_size), inRef(inStream), f(fun), restart(restartFunction) {}
+    DuplexCallback(
+            SoundRecording* recording,
+            oboe::AudioStream &inStream,
+            std::function<void(numeric_type *, numeric_type *)> fun,
+            size_t buffer_size, std::function<void(void)> restartFunction) :
+            kBufferSize(buffer_size), inRef(inStream), f(fun), restart(restartFunction) {
+        mSoundRecording = recording;
+    }
 
 
     oboe::DataCallbackResult
     onAudioReady(oboe::AudioStream *outputStream, void *audioData, int32_t numFrames) override {
         auto *outputData = static_cast<numeric_type *>(audioData);
         auto outputChannelCount = outputStream->getChannelCount();
+
+        if (mSoundRecording->getRecording()) {
+            mSoundRecording->write(static_cast<float_t *>(audioData), numFrames * outputStream->getChannelCount());
+        }
 
         // Silence first to simplify glitch detection
         std::fill(outputData, outputData + numFrames * outputChannelCount, 0);
@@ -75,6 +84,8 @@ private:
     std::function<void(numeric_type *, numeric_type *)> f;
     std::function<void(void)> restart;
     std::unique_ptr<numeric_type[]> inputBuffer = std::make_unique<numeric_type[]>(kBufferSize);
+
+    SoundRecording* mSoundRecording = nullptr;
 };
 
 #endif //ANDROID_FXLAB_DUPLEXCALLBACK_H

@@ -24,6 +24,7 @@ import android.media.midi.MidiManager
 import android.media.midi.MidiReceiver
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.util.Log
 import android.view.Menu
@@ -40,14 +41,18 @@ import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.mobileer.androidfxlab.databinding.ActivityMainBinding
 import com.mobileer.androidfxlab.datatype.Effect
+import kotlinx.android.synthetic.main.activity_main.*
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
 
-    private var TAG: String = this.toString()
+    private var TAG: String = "Oboe_FX_Recorder"
     lateinit var binding: ActivityMainBinding
     private var isAudioEnabled: Boolean = false
-
-    val MY_PERMISSIONS_RECORD_AUDIO = 17
+    private var isRecording: Boolean = false
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,15 +62,8 @@ class MainActivity : AppCompatActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.RECORD_AUDIO),
-                MY_PERMISSIONS_RECORD_AUDIO
-            )
-        }
+        // ### Requests Permission
+        requestPermissions()
 
         binding.effectListView.adapter = EffectsAdapter
 
@@ -99,6 +97,42 @@ class MainActivity : AppCompatActivity() {
             handleMidiDevices()
         }
 
+        // ### Start Recording
+        btnToggleRecording.setOnClickListener {
+            // ### Stop Recording
+            if (isRecording) {
+                Log.d(TAG, "Stop Record")
+                stopAudioRecorder()
+                btnToggleRecording.setText(R.string.start_record)
+                isRecording = false
+            }
+            // ### Start Recording
+            else {
+                Log.d(TAG, "Start Record")
+                startAudioRecorder()
+                btnToggleRecording.setText(R.string.stop_record)
+                isRecording = true
+            }
+        }
+    }
+
+    fun startAudioRecorder() {
+        NativeInterface.startAudioRecorder()
+    }
+
+    fun stopAudioRecorder() {
+        var recordingFilePath = getAudioRecordingFilePath();
+
+        NativeInterface.stopAudioRecorder()
+        NativeInterface.writeFile(recordingFilePath)
+    }
+    fun getAudioRecordingFilePath(): String {
+        val time = System.currentTimeMillis()
+        val newFile = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+            "oboe_fx_recorder_$time.wav"
+        )
+        return newFile.path
     }
 
     override fun onDestroy() {
@@ -122,31 +156,6 @@ class MainActivity : AppCompatActivity() {
         ) {
             NativeInterface.createAudioEngine()
             NativeInterface.enable(isAudioEnabled)
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            MY_PERMISSIONS_RECORD_AUDIO -> {
-                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    NativeInterface.createAudioEngine()
-                } else {
-                    val builder = AlertDialog.Builder(this).apply {
-                        setMessage(
-                            "Audio effects require audio input permissions! \n" +
-                                    "Enable permissions and restart app to use."
-                        )
-                        setTitle("Permission Error")
-                    }
-                    builder.create().show()
-                }
-                return
-            }
         }
     }
 
@@ -212,6 +221,44 @@ class MainActivity : AppCompatActivity() {
 
             if (data[offset] == CONTROL_CHANGE_CH1){
                 seekBar.progress = (data[offset+2].toInt() / 1.27).toInt()
+            }
+        }
+    }
+
+
+    // ### PERMISSIONS
+    private fun hasWriteExternalStoragePermission() = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+    private fun hasReadExternalStoragePermission() = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+    private fun hasRecordAudioPermission() = ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    private fun requestPermissions() {
+        var permissionsToRequest = mutableListOf<String>()
+        if (!hasWriteExternalStoragePermission()) {
+            permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+        if (!hasReadExternalStoragePermission()) {
+            permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        if (!hasRecordAudioPermission()) {
+            permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsToRequest.toTypedArray(), 0)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 0 && grantResults.isNotEmpty()) {
+            for (i in grantResults.indices) {
+                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("PermissionsRequest: ", "${permissions[i]} granted.")
+                }
             }
         }
     }
