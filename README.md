@@ -6,7 +6,16 @@
 
 ## Pre-build
 Link Oboe path directory in CmakeLists.txt
-Ex: `set (OBOE_DIR D:\\Android\\oboe)`
+```
+set (OBOE_DIR D:\\Android\\oboe)
+```
+
+Add [libsndfile](https://github.com/libsndfile/libsndfile) library
+```
+set(LIB_SND_FILE_DIR D:\\Android\\libsndfile)
+add_subdirectory(${LIB_SND_FILE_DIR} ./sndfile)
+include_directories(${LIB_SND_FILE_DIR}/src)
+```
 
 ## Export directory file
 Export file will be saved to Music directory.
