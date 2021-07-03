@@ -19,5 +19,5 @@
     <string name="action_toggle_mute">Toggle volume</string>
     <string name="start_record">Start Record</string>
     <string name="stop_record">Stop Record</string>
-
+    <string name="is_recording">Recording...</string>
 </resources>

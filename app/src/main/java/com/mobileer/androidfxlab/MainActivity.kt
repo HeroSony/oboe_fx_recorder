@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity() {
             else {
                 Log.d(TAG, "Start Record")
                 startAudioRecorder()
+                txtRecording.setText(R.string.is_recording)
                 btnToggleRecording.setText(R.string.stop_record)
                 isRecording = true
             }
